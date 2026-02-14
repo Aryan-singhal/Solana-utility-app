@@ -2,7 +2,7 @@ import { Alert, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View 
 import { Ionicons } from "@expo/vector-icons";
 import { useState } from "react";
 
-export function SwapScreen() {
+export default function SwapScreen() {
     const [fromAmount, setFromAmount] = useState("100");
     const [toAmount, setToAmount] = useState("0.28014");
     const [fromToken, setFromToken] = useState("USDC");
@@ -119,6 +119,7 @@ const s = StyleSheet.create({
         flex: 1,
         paddingHorizontal: 24,
         paddingTop: 16,
+        backgroundColor: "black"
     },
     scrollContent: {
         flexGrow: 1,

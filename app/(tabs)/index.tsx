@@ -12,6 +12,7 @@ import {
     Alert,
     Linking,
 } from "react-native";
+import { useRouter } from "expo-router";
 
 
 // ============================================
@@ -78,12 +79,14 @@ const timeAgo = (ts: number) => {
 // App
 // ============================================
 
-export function WalletScan() {
+export default function WalletScan() {
     const [address, setAddress] = useState("");
     const [loading, setLoading] = useState(false);
     const [balance, setBalance] = useState<number | null>(null);
     const [tokens, setTokens] = useState<any[]>([]);
     const [txns, setTxns] = useState<any[]>([]);
+
+    const router = useRouter();
 
     const search = async () => {
         const addr = address.trim();
@@ -177,10 +180,12 @@ export function WalletScan() {
                         keyExtractor={(t) => t.mint}
                         scrollEnabled={false}
                         renderItem={({ item }) => (
-                            <View style={s.row}>
+                            <TouchableOpacity style={s.row} onPress={() => {
+                                router.push(`/token/${item.mint}`);
+                            }}>
                                 <Text style={s.mint}>{short(item.mint, 6)}</Text>
                                 <Text style={s.amount}>{item.amount}</Text>
-                            </View>
+                            </TouchableOpacity>
                         )}
                     />
                 </>
@@ -240,6 +245,7 @@ const s = StyleSheet.create({
         flex: 1,
         paddingHorizontal: 24,
         paddingTop: 16,
+        backgroundColor: "black",
     },
     title: {
         color: "#FFFFFF",
