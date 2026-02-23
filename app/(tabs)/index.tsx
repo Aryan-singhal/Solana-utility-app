@@ -20,6 +20,8 @@ import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useWalletStore } from "../../src/stores/wallet-store";
 import { FavoriteButton } from "../../src/components/FavouriteButton";
+import { ConnectButton } from "../../src/components/ConnectButton";
+import { useWallet } from "../../src/hooks/useWallet";
 // import { FavoriteButton } from "../../src/components/FavoriteButton";
 
 const short = (s: string, n = 4) => `${s.slice(0, n)}...${s.slice(-n)}`;
@@ -39,6 +41,8 @@ export default function WalletScreen() {
     const [balance, setBalance] = useState<number | null>(null);
     const [tokens, setTokens] = useState<any[]>([]);
     const [txns, setTxns] = useState<any[]>([]);
+
+    const wallet = useWallet();
 
     // wallet store
     const addToHistory = useWalletStore((s) => s.addToHistory);
@@ -145,13 +149,26 @@ export default function WalletScreen() {
                 <ScrollView style={s.scroll}>
                     <View style={s.header}>
                         <View>
-                            <Text style={s.title}>SolScan</Text>
+                            <Text style={s.title}>SolScanner</Text>
                             <Text style={s.subtitle}>Explore any Solana wallet</Text>
                         </View>
                         <TouchableOpacity style={s.networkToggle} onPress={toggleNetwork}>
                             <View style={[s.networkDot, isDevnet && s.networkDotDevnet]} />
                             <Text style={s.networkText}>{isDevnet ? "Devnet" : "Mainnet"}</Text>
                         </TouchableOpacity>
+                    </View>
+
+                    {/* <View style={s.container}> */}
+                    {/* Header with Connect Button */}
+                    <View style={s.header}>
+                        <Text style={s.title}>◎ SolScan</Text>
+                        <ConnectButton
+                            connected={wallet.connected}
+                            connecting={wallet.connecting}
+                            publicKey={wallet.publicKey?.toBase58() ?? null}
+                            onConnect={wallet.connect}
+                            onDisconnect={wallet.disconnect}
+                        />
                     </View>
 
                     <View style={s.inputContainer}>
