@@ -12,6 +12,12 @@ export default function RootLayout() {
                 <Stack.Screen name="token/[mint]" />
                 <Stack.Screen name="orders" />
                 <Stack.Screen name="watchlist" />
+                <Stack.Screen
+                    name="send"
+                    options={{
+                        presentation: "modal",  // slides up from bottom like a sheet
+                    }}
+                />
             </Stack>
         </SafeAreaProvider>
     );

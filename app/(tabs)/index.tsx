@@ -1,6 +1,6 @@
 // app/(tabs)/index.tsx
 // wallet screen - home tab at "/" route
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
     View,
     Text,
@@ -19,10 +19,10 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useWalletStore } from "../../src/stores/wallet-store";
-import { FavoriteButton } from "../../src/components/FavouriteButton";
+// import { FavoriteButton } from "../../src/components/FavoriteButton";
 import { ConnectButton } from "../../src/components/ConnectButton";
 import { useWallet } from "../../src/hooks/useWallet";
-// import { FavoriteButton } from "../../src/components/FavoriteButton";
+import { FavoriteButton } from "../../src/components/FavouriteButton";
 
 const short = (s: string, n = 4) => `${s.slice(0, n)}...${s.slice(-n)}`;
 
@@ -42,13 +42,13 @@ export default function WalletScreen() {
     const [tokens, setTokens] = useState<any[]>([]);
     const [txns, setTxns] = useState<any[]>([]);
 
-    const wallet = useWallet();
-
     // wallet store
     const addToHistory = useWalletStore((s) => s.addToHistory);
     const searchHistory = useWalletStore((s) => s.searchHistory);
     const isDevnet = useWalletStore((s) => s.isDevnet);
     const toggleNetwork = useWalletStore((s) => s.toggleNetwork);
+
+    const wallet = useWallet();
 
     // use correct rpc based on network
     const RPC = isDevnet
@@ -78,20 +78,32 @@ export default function WalletScreen() {
             { encoding: "jsonParsed" },
         ]);
         return (result.value || [])
-            .map((a: { account: { data: { parsed: { info: { mint: string; tokenAmount: { uiAmount: number } } } } } }) => ({
-                mint: a.account.data.parsed.info.mint,
-                amount: a.account.data.parsed.info.tokenAmount.uiAmount,
-            }))
+            .map(
+                (a: {
+                    account: {
+                        data: {
+                            parsed: {
+                                info: { mint: string; tokenAmount: { uiAmount: number } };
+                            };
+                        };
+                    };
+                }) => ({
+                    mint: a.account.data.parsed.info.mint,
+                    amount: a.account.data.parsed.info.tokenAmount.uiAmount,
+                }),
+            )
             .filter((t: { mint: string; amount: number }) => t.amount > 0);
     };
 
     const getTxns = async (addr: string) => {
         const sigs = await rpc("getSignaturesForAddress", [addr, { limit: 10 }]);
-        return sigs.map((s: { signature: string; blockTime: number; err: unknown }) => ({
-            sig: s.signature,
-            time: s.blockTime,
-            ok: !s.err,
-        }));
+        return sigs.map(
+            (s: { signature: string; blockTime: number; err: unknown }) => ({
+                sig: s.signature,
+                time: s.blockTime,
+                ok: !s.err,
+            }),
+        );
     };
 
     const search = async () => {
@@ -140,6 +152,17 @@ export default function WalletScreen() {
         setTxns([]);
     };
 
+    // fetch connected wallet data when wallet connects
+    const prevConnected = useRef(false);
+    useEffect(() => {
+        if (wallet.connected && wallet.publicKey && !prevConnected.current) {
+            const addr = wallet.publicKey.toBase58();
+            setAddress(addr);
+            searchFromHistory(addr);
+        }
+        prevConnected.current = wallet.connected;
+    }, [wallet.connected, wallet.publicKey]);
+
     return (
         <SafeAreaView style={s.safe} edges={["top"]}>
             <KeyboardAvoidingView
@@ -149,26 +172,24 @@ export default function WalletScreen() {
                 <ScrollView style={s.scroll}>
                     <View style={s.header}>
                         <View>
-                            <Text style={s.title}>SolScanner</Text>
+                            <Text style={s.title}>SolScan</Text>
                             <Text style={s.subtitle}>Explore any Solana wallet</Text>
                         </View>
-                        <TouchableOpacity style={s.networkToggle} onPress={toggleNetwork}>
-                            <View style={[s.networkDot, isDevnet && s.networkDotDevnet]} />
-                            <Text style={s.networkText}>{isDevnet ? "Devnet" : "Mainnet"}</Text>
-                        </TouchableOpacity>
-                    </View>
-
-                    {/* <View style={s.container}> */}
-                    {/* Header with Connect Button */}
-                    <View style={s.header}>
-                        <Text style={s.title}>◎ SolScan</Text>
-                        <ConnectButton
-                            connected={wallet.connected}
-                            connecting={wallet.connecting}
-                            publicKey={wallet.publicKey?.toBase58() ?? null}
-                            onConnect={wallet.connect}
-                            onDisconnect={wallet.disconnect}
-                        />
+                        <View style={s.headerRight}>
+                            <TouchableOpacity style={s.networkToggle} onPress={toggleNetwork}>
+                                <View style={[s.networkDot, isDevnet && s.networkDotDevnet]} />
+                                <Text style={s.networkText}>
+                                    {isDevnet ? "Devnet" : "Mainnet"}
+                                </Text>
+                            </TouchableOpacity>
+                            <ConnectButton
+                                connected={wallet.connected}
+                                connecting={wallet.connecting}
+                                publicKey={wallet.publicKey?.toBase58() ?? null}
+                                onConnect={wallet.connect}
+                                onDisconnect={wallet.disconnect}
+                            />
+                        </View>
                     </View>
 
                     <View style={s.inputContainer}>
@@ -231,6 +252,15 @@ export default function WalletScreen() {
                                 <Text style={s.sol}>SOL</Text>
                             </View>
                             <Text style={s.addr}>{short(address.trim(), 6)}</Text>
+                            {wallet.connected && (
+                                <TouchableOpacity
+                                    style={s.sendNav}
+                                    onPress={() => router.push("/send")}
+                                >
+                                    <Ionicons name="paper-plane" size={18} color="#0D0D12" />
+                                    <Text style={s.sendNavText}>Send SOL</Text>
+                                </TouchableOpacity>
+                            )}
                         </View>
                     )}
 
@@ -319,6 +349,14 @@ const s = StyleSheet.create({
         justifyContent: "space-between",
         alignItems: "flex-start",
         marginBottom: 28,
+    },
+    headerRight: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 8,
+        flexWrap: "wrap",
+        justifyContent: "flex-end",
+        maxWidth: 200,
     },
     title: {
         color: "#FFFFFF",
@@ -513,5 +551,21 @@ const s = StyleSheet.create({
         color: "#6B7280",
         fontSize: 12,
         marginTop: 4,
+    },
+    sendNav: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "center",
+        backgroundColor: "#14F195",
+        paddingVertical: 12,
+        paddingHorizontal: 20,
+        borderRadius: 12,
+        marginTop: 20,
+        gap: 8,
+    },
+    sendNavText: {
+        color: "#0D0D12",
+        fontSize: 15,
+        fontWeight: "600",
     },
 });

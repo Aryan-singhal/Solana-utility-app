@@ -34,7 +34,7 @@ export function ConnectButton({
     }
 
     return (
-        <TouchableOpacity style={[styles.button, styles.disconnected]} onPress={onConnect}>
+        <TouchableOpacity style={[styles.button, styles.disconnected]} onPress={() => { const key = onConnect(); console.log("Key: ", key) }}>
             <Ionicons name="wallet-outline" size={18} color="#fff" />
             <Text style={styles.buttonText}>Connect Wallet</Text>
         </TouchableOpacity>
